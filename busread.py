@@ -15,16 +15,17 @@ def database():
     config.read('config.ini')
   
     global mongo1
-    mongo1 = client = MongoClient(config['MONGODB']['MONGO_CLIENT'])
+    mongo1 = client = MongoClient("mongodb://localhost:27017/") #localhost
+    #mongo1 = client = MongoClient(config['MONGODB']['MONGO_CLIENT']) #link in separated config.ini file 
     #mongo1 = client = MongoClient(os.environ['MONGO_CLIENT']) (for dockerfile)
     global db
-    db = client['bus']
+    db = client['bus-kmb']
     global collection
     collection = db['database']
     
 #list all ETA records    
-def check(inputbus, inputtime):
-    query = {"Bus": inputbus, "Timestamp":{ "$regex": inputtime }}
+def check(inputstation, inputtime):
+    query = {"Station": inputstation, "Timestamp":{ "$regex": inputtime }}
     results = collection.find(query)    
     results_number = collection.count_documents(query)
    
@@ -72,19 +73,19 @@ def time_schedule(inputbus, inputtime):
                                 scheduledbus = record["rmk_en"]
                             
 def menu():
-    inputbus = input("Check bus no: ").upper()
+    inputstation = input("Check station: ")
     inputtime = input("Check timestamp (format: yyyy-mm-ddThh:mm:ss): ")
     #2022-01-06T08:35:51
     mode = input("Check full ETA record: a, Check bus arrival time: b:")
     if mode == "a":
-        check(inputbus, inputtime)
+        check(inputstation, inputtime)
         menu()
     elif mode == "b":
-        time_schedule(inputbus, inputtime)
+        time_schedule(inputstation, inputtime)
         menu()
     else:
-        check(inputbus, inputtime)
-        time_schedule(inputbus, inputtime)
+        check(inputstation, inputtime)
+        time_schedule(inputstation, inputtime)
         menu()
 
                 

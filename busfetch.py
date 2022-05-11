@@ -2,6 +2,8 @@ import requests
 import time
 #import os (use os commands for building container via dockerfile)
 
+#https://data.gov.hk/tc-data/dataset/hk-td-tis_21-etakmb
+
 import configparser
 from pymongo import MongoClient
 
@@ -15,19 +17,18 @@ def database():
     config.read('config.ini')
   
     global mongo1
-    mongo1 = client = MongoClient(config['MONGODB']['MONGO_CLIENT']) #link in separated config.ini file 
+    mongo1 = client = MongoClient("mongodb://localhost:27017/bus") #localhost
+    #mongo1 = client = MongoClient(config['MONGODB']['MONGO_CLIENT']) #link in separated config.ini file 
     #mongo1 = client = MongoClient(os.environ['MONGO_CLIENT']) #for building container, link in separated dockerfile
     global db
-    db = client['bus']
+    db = client['bus-kmb']
     global collection
     collection = db['database']
 
-bus = ["280X"]
-station = "F3433105FE5F6865"
-#https://data.etabus.gov.hk/v1/transport/kmb/stop "青沙公路轉車站 (A3)"'
-#crosscheck with https://data.etabus.gov.hk/v1/transport/kmb/route-stop 
 
-def callAPI(bus, station):
+
+
+def callAPI(bus, station, station_name):
         
     for busno in bus:
         
@@ -36,20 +37,52 @@ def callAPI(bus, station):
 
         api = r.json()
 
-        print("Called at:", api['generated_timestamp'])
-        print("______________________________________")
+        print(busno, station_name, " Called at:", api['generated_timestamp'])
+        print("----------------------------------------")
         
         arrivaltime = api['data']
 
         for item in arrivaltime:
-            print(item['eta_seq'],item['eta'], item['rmk_en'])
+            print(item['eta_seq'],item['eta'], item['rmk_en'], item['dest_tc'])
         
-        post = {"Timestamp": api['generated_timestamp'], "Bus": busno, "Station": station, "data": arrivaltime}
+        print("----------------------------------------")
+        post = {"Timestamp": api['generated_timestamp'], "Bus": busno, "Station": station_name, "Station_code": station, "data": arrivaltime}
         x = collection.insert_one(post)
+    
+    print("----------------------------------------")
 
        
 database()
 
+#Check station value from buscheck.py
+
 while(True):
-    callAPI(bus,station)
+    
+    bus = ["286X"]
+    station = "BE58B5A4B0E76EF7"
+    station_name =  '海福花園'
+    callAPI(bus, station, station_name)    
+  
+    bus = ["286X"]
+    station = "480DB16994F8FFEE"
+    station_name =  '青沙公路轉車站 (A5)'
+    callAPI(bus, station, station_name)
+
+    bus = ["280X"]
+    station = "480DB16994F8FFEE" 
+    station_name = '青沙公路轉車站 (A3)'
+    callAPI(bus, station, station_name)
+    
+    bus = ["280X"]
+    station = "FE56DD70DEDE0395" 
+    station_name = '聖安德烈堂 (S48)'
+    callAPI(bus, station, station_name)
+    
+    bus = ["81"]
+    station = "DF10BE627F25E7DD" 
+    station_name = '油麻地寧波街 (N28)'
+    callAPI(bus, station, station_name)
+
+    
+
     time.sleep(60)
