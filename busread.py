@@ -24,24 +24,25 @@ def database():
     collection = db['database']
     
 #list all ETA records    
-def check(inputstation, inputtime):
-    query = {"Station": inputstation, "Timestamp":{ "$regex": inputtime }}
+def check(inputroute, inputstation, inputtime):
+    query = {"Bus": { "$regex": inputroute}, "Station": { "$regex": inputstation}, "Timestamp":{ "$regex": inputtime }}
     results = collection.find(query)    
     results_number = collection.count_documents(query)
    
     if results_number == 0:
         print("No result found")
     else:
-        print("Results:")
+        print("Results for ", inputroute, " at ", inputstation, " on ", inputtime)
         for result in results:
                 print("At: ", result["Timestamp"][11:19])
                 for record in result["data"]:
-                    print("Arrival time: ", record["eta"][11:19], record["rmk_en"])
+                    if record["eta"] is not None:
+                        print("Arrival time: ", record["eta"][11:19], record["rmk_en"])
                 print("_____________________________")
 
 #calculate bus schedule based on ETA records
-def time_schedule(inputbus, inputtime):
-    query = {"Bus": inputbus, "Timestamp":{ "$regex": inputtime }}
+def time_schedule(inputroute, inputstation, inputtime):
+    query = {"Bus": { "$regex": inputroute}, "Station": { "$regex": inputstation}, "Timestamp":{ "$regex": inputtime }}
     results = collection.find(query)    
     results_number = collection.count_documents(query)
     
@@ -52,12 +53,12 @@ def time_schedule(inputbus, inputtime):
     if results_number == 0:
         print("No result found")
     else:
-        print("Results:")
+        print("Results for ", inputroute, " at ", inputstation, " on ", inputtime)
         for result in results:
                 
                 for record in result["data"]:
                     
-                    if (record["eta_seq"] == 1):
+                    if (record["eta_seq"] == 1) and (record["eta"] is not None):
                         bustime = datetime.strptime(record["eta"][11:19],'%H:%M:%S')
                         if (prev_bustime == 0):
                             prev_bustime = bustime
@@ -68,24 +69,23 @@ def time_schedule(inputbus, inputtime):
                                 scheduledbus = record["rmk_en"]
                             else:
                                 print(prev_bustime.strftime("%X"), scheduledbus)
-                                print("_____________________________")
                                 prev_bustime = bustime
                                 scheduledbus = record["rmk_en"]
                             
 def menu():
+    inputroute = input("Check route: ")
+    inputroute = str(inputroute.upper())
     inputstation = input("Check station: ")
     inputtime = input("Check timestamp (format: yyyy-mm-ddThh:mm:ss): ")
     #2022-01-06T08:35:51
     mode = input("Check full ETA record: a, Check bus arrival time: b:")
     if mode == "a":
-        check(inputstation, inputtime)
+        check(inputroute, inputstation, inputtime)
         menu()
     elif mode == "b":
-        time_schedule(inputstation, inputtime)
+        time_schedule(inputroute, inputstation, inputtime)
         menu()
     else:
-        check(inputstation, inputtime)
-        time_schedule(inputstation, inputtime)
         menu()
 
                 
